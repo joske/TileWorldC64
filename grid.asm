@@ -29,9 +29,7 @@ init_objects:
         jsr draw_tile
 move:        
         jsr move_agent
-        lda A1X
-        cmp #40
-        bne move
+        jmp move
 wait:
         jmp wait
 
@@ -66,7 +64,41 @@ move_agent:                 // draw agent
         jsr delay
         rts
 update_agent:               // put logic to find tile and calculate next move here
+        lda T1X
+        cmp A1X
+        beq updown
+        bcc left
+        jsr move_right
+        jmp done
+left:        
+        jsr move_left
+        jmp done
+updown:
+        lda T1Y
+        cmp A1Y
+        beq done
+        bcc up
+        jsr move_down
+        jmp done
+up:
+        jsr move_up
+done:        
+        rts
+
+move_left:
+        dec A1X
+        rts
+                
+move_right:
         inc A1X
+        rts
+                
+move_up:
+        dec A1Y
+        rts
+                
+move_down:
+        inc A1Y
         rts
                 
 delay:
