@@ -20,17 +20,17 @@ start:
         jsr init_screen
 
 init_objects:
-        jsr rnd
+        jsr rndx
         sta T1X
-        jsr rnd
+        jsr rndy
         sta T1Y
-        jsr rnd
+        jsr rndx
         sta H1X
-        jsr rnd
+        jsr rndy
         sta H1Y
-        jsr rnd
+        jsr rndx
         sta A1X
-        jsr rnd
+        jsr rndy
         sta A1Y
         lda #0
         sta A1HASTILE
@@ -51,9 +51,9 @@ move:
         bne move
         lda #1
         sta A1HASTILE
-        jsr rnd             // create new tile
+        jsr rndx             // create new tile
         sta T1X
-        jsr rnd
+        jsr rndy
         sta T1Y
         jsr draw_tile
 checkhole:        
@@ -65,9 +65,9 @@ checkhole:
         bne move
         lda #0
         sta A1HASTILE
-        jsr rnd             // create new hole
+        jsr rndx             // create new hole
         sta H1X
-        jsr rnd
+        jsr rndy
         sta H1Y
         jsr draw_hole
         jmp move
@@ -228,11 +228,19 @@ PLOT:
         sta (IAL),y
         rts
 
-rnd:    
+rndx:    
         lda $d012
         eor $dc04
         sbc $dc05
-        cmp 25
-        bcs rnd
+        cmp #40
+        bcs rndx
+        rts
+
+rndy:    
+        lda $d012
+        eor $dc04
+        sbc $dc05
+        cmp #25
+        bcs rndy
         rts
 
