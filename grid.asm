@@ -208,6 +208,8 @@ init_screen:
         stx $d021           // set background color
         ldx #$00            // set X to 0 (black color code)
         stx $d020           // set border color
+        lda #0              // set text foreground to black
+        sta $286
 
 clear:   
         lda #$2E            // #$2E is . -> fill screen with .
@@ -234,8 +236,6 @@ loop_text:
         inx 
         cpx #10          // finished when all 40 cols of a line are processed
         bne loop_text    // loop if we are not done yet
-        lda #0
-        sta $286
         clc
         ldx #24
         ldy #10
