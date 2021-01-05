@@ -11,26 +11,38 @@
 
 .var T1X = $4010
 .var T1Y = $4011
+.var T1SCORE = $4012
 
 .var H1X = $4020
 .var H1Y = $4021
+
+line1: .text "agent1 : "
 
 BasicUpstart2(start)
 start:        
         jsr init_screen
 
 init_objects:
-        jsr rndx
+        ldx #40
+        jsr rnd
         sta T1X
-        jsr rndy
+        ldx #25
+        jsr rnd
         sta T1Y
-        jsr rndx
+        ldx #6
+        jsr rnd
+        sta T1SCORE
+        ldx #40
+        jsr rnd
         sta H1X
-        jsr rndy
+        ldx #25
+        jsr rnd
         sta H1Y
-        jsr rndx
+        ldx #40
+        jsr rnd
         sta A1X
-        jsr rndy
+        ldx #25
+        jsr rnd
         sta A1Y
         lda #0
         sta A1HASTILE
@@ -39,6 +51,7 @@ init_objects:
         jsr draw_tile
         jsr draw_hole
 move:        
+        jsr print_score
         jsr move_agent
         lda A1HASTILE
         cmp #1
@@ -51,9 +64,11 @@ move:
         bne move
         lda #1
         sta A1HASTILE
-        jsr rndx             // create new tile
+        ldx #40
+        jsr rnd             // create new tile
         sta T1X
-        jsr rndy
+        ldx #25
+        jsr rnd
         sta T1Y
         jsr draw_tile
 checkhole:        
@@ -63,11 +78,20 @@ checkhole:
         lda H1Y
         cmp A1Y
         bne move
+                            // we have arrived at hole
         lda #0
         sta A1HASTILE
-        jsr rndx             // create new hole
+        lda T1SCORE
+        adc A1SCORE
+        sta A1SCORE
+        ldx #6
+        jsr rnd
+        sta T1SCORE
+        ldx #40
+        jsr rnd             // create new hole
         sta H1X
-        jsr rndy
+        ldx #25
+        jsr rnd
         sta H1Y
         jsr draw_hole
         jmp move
@@ -198,6 +222,20 @@ clear:
                             // if not, continue with the loop
         rts                 // return from this subroutine
 
+print_score:
+        ldx #0
+loop_text:  
+        lda line1,x      // read characters from line1 table of text...
+        sta $07c0,x      
+
+        inx 
+        cpx #10          // finished when all 40 cols of a line are processed
+        bne loop_text    // loop if we are not done yet
+        lda A1SCORE
+        adc #$30
+        sta $07ca
+        rts
+        
 plotchar:                   // $FD & $FF contain the x,y coords, 
                             // $02 contains the char to plot  
         lda #$00
@@ -228,19 +266,11 @@ PLOT:
         sta (IAL),y
         rts
 
-rndx:    
+rnd:                        // pass max in X register 
+        stx $5000
         lda $d012
         eor $dc04
         sbc $dc05
-        cmp #40
-        bcs rndx
+        cmp $5000 
+        bcs rnd
         rts
-
-rndy:    
-        lda $d012
-        eor $dc04
-        sbc $dc05
-        cmp #25
-        bcs rndy
-        rts
-
