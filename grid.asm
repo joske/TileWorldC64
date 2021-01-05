@@ -16,7 +16,10 @@
 .var H1X = $4020
 .var H1Y = $4021
 
-line1: .text "agent1 : "
+.var SETCURSOR = $E50A
+.var INPRNT = $BDCD
+
+line1: .text "agent1 :  "
 
 BasicUpstart2(start)
 start:        
@@ -35,13 +38,13 @@ init_objects:
         ldx #40
         jsr rnd
         sta H1X
-        ldx #25
+        ldx #24
         jsr rnd
         sta H1Y
         ldx #40
         jsr rnd
         sta A1X
-        ldx #25
+        ldx #24
         jsr rnd
         sta A1Y
         lda #0
@@ -67,7 +70,7 @@ move:
         ldx #40
         jsr rnd             // create new tile
         sta T1X
-        ldx #25
+        ldx #24
         jsr rnd
         sta T1Y
         jsr draw_tile
@@ -90,7 +93,7 @@ checkhole:
         ldx #40
         jsr rnd             // create new hole
         sta H1X
-        ldx #25
+        ldx #24
         jsr rnd
         sta H1Y
         jsr draw_hole
@@ -191,7 +194,7 @@ move_down:
         rts
                 
 delay:
-        ldx #$FF
+        ldx #$7F
         ldy $FF
 decr:
         dey
@@ -231,9 +234,15 @@ loop_text:
         inx 
         cpx #10          // finished when all 40 cols of a line are processed
         bne loop_text    // loop if we are not done yet
-        lda A1SCORE
-        adc #$30
-        sta $07ca
+        lda #0
+        sta $286
+        clc
+        ldx #24
+        ldy #10
+        jsr SETCURSOR
+        lda A1SCORE + 1
+        ldx A1SCORE
+        jsr INPRNT
         rts
         
 plotchar:                   // $FD & $FF contain the x,y coords, 
