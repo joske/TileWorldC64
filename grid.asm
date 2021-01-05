@@ -4,38 +4,71 @@
 .var YPOS = $FF
 .var CODE = $02
 
+.var A1X = $4000
+.var A1Y = $4001
+.var A1SCORE = $4002
+
+.var T1X = $4020
+.var T1Y = $4021
+
 BasicUpstart2(start)
 start:        
         jsr init_screen
 
-        lda #81             // draw a ball at random location
-        sta CODE
+init_objects:
         jsr rnd
-        sta XPOS
+        sta T1X
         jsr rnd
-        sta YPOS
-        jsr plotchar
-        lda #1
-        sta XPOS
-        lda #10
-        sta YPOS
-update:                     // draw an agent at 1, 10, and move it 
-        lda #$01
-        sta CODE
-        jsr plotchar
-        jsr delay
-        lda #$2e
-        sta CODE
-        jsr plotchar
-        inc XPOS
+        sta T1Y
+        jsr rnd
+        sta A1X
+        jsr rnd
+        sta A1Y
+
+        jsr draw_agent
+        jsr draw_tile
+move:        
+        jsr move_agent
+        lda A1X
         cmp #40
-        bcs update
-        inc YPOS
-        jmp update
-                
+        bne move
 wait:
         jmp wait
 
+draw_tile:        
+        lda #81             // $81 is ball
+        sta CODE
+        lda T1X
+        sta XPOS
+        lda T1Y
+        sta YPOS
+        jsr plotchar
+        rts
+draw_agent:                 // draw agent
+        lda #$01            // $01 is A
+        sta CODE
+        lda A1X
+        sta XPOS
+        lda A1Y
+        sta YPOS
+        jsr plotchar
+        rts
+move_agent:                 // draw agent
+        lda #$2e            // .
+        sta CODE
+        lda A1X
+        sta XPOS
+        lda A1Y
+        sta YPOS
+        jsr plotchar
+        jsr update_agent
+        jsr draw_agent
+        jsr delay
+        rts
+update_agent:               // put logic to find tile and calculate next move here
+        inc A1X
+        rts
+                
 delay:
         ldx #$FF
         ldy $FF
@@ -104,3 +137,4 @@ rnd:    lda $d012
         cmp 25
         bcs rnd
         rts
+
