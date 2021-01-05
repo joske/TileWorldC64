@@ -6,10 +6,14 @@
 
 .var A1X = $4000
 .var A1Y = $4001
-.var A1SCORE = $4002
+.var A1HASTILE = $4002
+.var A1SCORE = $4003
 
-.var T1X = $4020
-.var T1Y = $4021
+.var T1X = $4010
+.var T1Y = $4011
+
+.var H1X = $4020
+.var H1Y = $4021
 
 BasicUpstart2(start)
 start:        
@@ -21,24 +25,57 @@ init_objects:
         jsr rnd
         sta T1Y
         jsr rnd
+        sta H1X
+        jsr rnd
+        sta H1Y
+        jsr rnd
         sta A1X
         jsr rnd
         sta A1Y
+        lda #0
+        sta A1HASTILE
 
         jsr draw_agent
         jsr draw_tile
+        jsr draw_hole
 move:        
         jsr move_agent
-        jmp move
+        lda A1HASTILE
+        cmp #1
+        beq checkhole
+        lda T1X
+        cmp A1X
+        bne move
+        lda T1Y
+        cmp A1Y
+        bne move
+        lda #1
+        sta A1HASTILE
+checkhole:        
+        lda H1X
+        cmp A1X
+        bne move
+        lda H1Y
+        cmp A1Y
+        bne move
 wait:
         jmp wait
 
 draw_tile:        
-        lda #81             // $81 is ball
+        lda #$D1
         sta CODE
         lda T1X
         sta XPOS
         lda T1Y
+        sta YPOS
+        jsr plotchar
+        rts
+draw_hole:        
+        lda #81
+        sta CODE
+        lda H1X
+        sta XPOS
+        lda H1Y
         sta YPOS
         jsr plotchar
         rts
@@ -63,8 +100,16 @@ move_agent:                 // draw agent
         jsr draw_agent
         jsr delay
         rts
-update_agent:               // put logic to find tile and calculate next move here
+        
+update_agent:               // find tile, move to it, if has tile, move to hole
+        lda A1HASTILE
+        cmp #1
+        beq holex
         lda T1X
+        jmp cmpx
+holex:
+        lda H1X
+cmpx:        
         cmp A1X
         beq updown
         bcc left
@@ -74,7 +119,14 @@ left:
         jsr move_left
         jmp done
 updown:
+        lda A1HASTILE
+        cmp #1
+        beq holey
         lda T1Y
+        jmp cmpy
+holey:
+        lda H1Y
+cmpy:        
         cmp A1Y
         beq done
         bcc up
