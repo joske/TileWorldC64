@@ -51,6 +51,11 @@ move:
         bne move
         lda #1
         sta A1HASTILE
+        jsr rnd             // create new tile
+        sta T1X
+        jsr rnd
+        sta T1Y
+        jsr draw_tile
 checkhole:        
         lda H1X
         cmp A1X
@@ -58,6 +63,14 @@ checkhole:
         lda H1Y
         cmp A1Y
         bne move
+        lda #0
+        sta A1HASTILE
+        jsr rnd             // create new hole
+        sta H1X
+        jsr rnd
+        sta H1Y
+        jsr draw_hole
+        jmp move
 wait:
         jmp wait
 
@@ -215,7 +228,8 @@ PLOT:
         sta (IAL),y
         rts
 
-rnd:    lda $d012
+rnd:    
+        lda $d012
         eor $dc04
         sbc $dc05
         cmp 25
