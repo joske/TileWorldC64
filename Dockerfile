@@ -1,4 +1,4 @@
-FROM alpine
+FROM alpine AS builder
 
 RUN apk update
 
@@ -12,6 +12,9 @@ RUN unzip /tmp/KickAssembler.zip KickAss.jar KickAss.cfg
 
 COPY grid.asm .
 
-RUN java -jar KickAss.jar grid.asm
+RUN java -jar KickAss.jar grid.asm -debug
 
-CMD [ "x64", "+sound", "grid.prg"]
+CMD [ "x64", "-default", "-console", "grid.prg"]
+
+FROM scratch AS export
+COPY --from=builder /app/grid.prg /

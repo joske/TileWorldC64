@@ -34,6 +34,7 @@ start:
 init_objects:
         lda #0
         sta A1SCORE
+        sta A1SCORE + 1
         ldx #40
         jsr rnd
         sta T1X
@@ -117,17 +118,25 @@ checkhole:
         lda A1TILENO
         cmp #1
         bne score_t2
-        lda T1SCORE
-        adc A1SCORE
+        clc
+        lda A1SCORE
+        adc T1SCORE
         sta A1SCORE
+        lda A1SCORE+1
+        adc #0           // add carry
+        sta A1SCORE+1
         ldx #6
         jsr rnd
         sta T1SCORE
         jmp create_hole
 score_t2:
-        lda T2SCORE
-        adc A1SCORE
+        clc
+        lda A1SCORE
+        adc T1SCORE
         sta A1SCORE
+        lda A1SCORE+1
+        adc #0           // add carry
+        sta A1SCORE+1
         ldx #6
         jsr rnd
         sta T2SCORE
