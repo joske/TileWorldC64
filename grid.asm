@@ -8,9 +8,9 @@
 .var A1Y = $4001
 .var A1HASTILE = $4002
 .var A1SCORE = $4003
-.var A1TILENO = $4004
-.var A1TILEX = $4005
-.var A1TILEY = $4006
+.var A1TILENO = $4005
+.var A1TILEX = $4006
+.var A1TILEY = $4007
 
 .var T1X = $4010
 .var T1Y = $4011
@@ -132,7 +132,7 @@ checkhole:
 score_t2:
         clc
         lda A1SCORE
-        adc T1SCORE
+        adc T2SCORE
         sta A1SCORE
         lda A1SCORE+1
         adc #0           // add carry
