@@ -1,13 +1,23 @@
+// Screen constants
 .var video = $0400
+.const SCREEN_WIDTH = 40
+.const SCREEN_HEIGHT = 24
+.const CHAR_DOT = $2E
+.const CHAR_AGENT = $01
+.const CHAR_HOLE = 81
+
+// Zero-page variables for plotting (must stay here for indirect addressing)
 .var IAL = $FB
 .var XPOS = $FD
 .var YPOS = $FF
 .var CODE = $02
+.var TEMP = $4030           // temp variable
 
+// Game state in high memory (safe from BASIC ROM conflicts)
 .var A1X = $4000
 .var A1Y = $4001
 .var A1HASTILE = $4002
-.var A1SCORE = $4003
+.var A1SCORE = $4003        // 16-bit: $4003 (low) and $4004 (high)
 .var A1TILENO = $4005
 .var A1TILEX = $4006
 .var A1TILEY = $4007
@@ -35,34 +45,34 @@ init_objects:
         lda #0
         sta A1SCORE
         sta A1SCORE + 1
-        ldx #40
+        ldx #SCREEN_WIDTH
         jsr rnd
         sta T1X
-        ldx #25
+        ldx #SCREEN_HEIGHT
         jsr rnd
         sta T1Y
         ldx #6
         jsr rnd
         sta T1SCORE
-        ldx #40
+        ldx #SCREEN_WIDTH
         jsr rnd
         sta T2X
-        ldx #25
+        ldx #SCREEN_HEIGHT
         jsr rnd
         sta T2Y
         ldx #6
         jsr rnd
         sta T2SCORE
-        ldx #40
+        ldx #SCREEN_WIDTH
         jsr rnd
         sta H1X
-        ldx #24
+        ldx #SCREEN_HEIGHT
         jsr rnd
         sta H1Y
-        ldx #40
+        ldx #SCREEN_WIDTH
         jsr rnd
         sta A1X
-        ldx #24
+        ldx #SCREEN_HEIGHT
         jsr rnd
         sta A1Y
         lda #0
@@ -75,7 +85,6 @@ init_objects:
 move:
         jsr print_score
         jsr move_agent
-.break
         lda A1HASTILE
         cmp #1
         beq checkhole
@@ -90,18 +99,18 @@ move:
         lda A1TILENO
         cmp #1
         bne create_t2
-        ldx #40
+        ldx #SCREEN_WIDTH
         jsr rnd             // create new tile
         sta T1X
-        ldx #24
+        ldx #SCREEN_HEIGHT
         jsr rnd
         sta T1Y
         jmp checkhole
 create_t2:
-        ldx #40
+        ldx #SCREEN_WIDTH
         jsr rnd             // create new tile
         sta T2X
-        ldx #24
+        ldx #SCREEN_HEIGHT
         jsr rnd
         sta T2Y
 checkhole:
@@ -114,7 +123,6 @@ checkhole:
         cmp A1Y
         bne move
                             // we have arrived at hole
-.break
         lda A1TILENO
         cmp #1
         bne score_t2
@@ -143,12 +151,11 @@ score_t2:
 create_hole:
         lda #0
         sta A1HASTILE
-        lda #0
-        sta A1TILENO
-        ldx #40
+        sta A1TILENO        // clear both with same value
+        ldx #SCREEN_WIDTH
         jsr rnd             // create new hole
         sta H1X
-        ldx #24
+        ldx #SCREEN_HEIGHT
         jsr rnd
         sta H1Y
         jsr draw_hole
@@ -157,7 +164,8 @@ wait:
         jmp wait
 
 draw_tile1:
-        lda #$D1
+        lda T1SCORE
+        ora #$30            // convert score (0-9) to PETSCII digit
         sta CODE
         lda T1X
         sta XPOS
@@ -166,7 +174,8 @@ draw_tile1:
         jsr plotchar
         rts
 draw_tile2:
-        lda #$D1
+        lda T2SCORE
+        ora #$30            // convert score (0-9) to PETSCII digit
         sta CODE
         lda T2X
         sta XPOS
@@ -175,7 +184,7 @@ draw_tile2:
         jsr plotchar
         rts
 draw_hole:
-        lda #81
+        lda #CHAR_HOLE
         sta CODE
         lda H1X
         sta XPOS
@@ -184,7 +193,7 @@ draw_hole:
         jsr plotchar
         rts
 draw_agent:                 // draw agent
-        lda #$01            // $01 is A
+        lda #CHAR_AGENT
         sta CODE
         lda A1X
         sta XPOS
@@ -192,8 +201,8 @@ draw_agent:                 // draw agent
         sta YPOS
         jsr plotchar
         rts
-move_agent:                 // draw agent
-        lda #$2e            // .
+move_agent:                 // erase old position, update, draw new
+        lda #CHAR_DOT
         sta CODE
         lda A1X
         sta XPOS
@@ -202,7 +211,7 @@ move_agent:                 // draw agent
         jsr plotchar
         jsr update_agent
         jsr draw_agent
-        jsr delay
+        jsr wait_vsync
         rts
 
 update_agent:               // find tile, move to it, if has tile, move to hole
@@ -247,84 +256,93 @@ done:
         rts
 
 move_left:
+        lda A1X
+        beq skip_left       // don't move if at left edge (X=0)
         dec A1X
+skip_left:
         rts
 
 move_right:
+        lda A1X
+        cmp #[SCREEN_WIDTH-1]
+        beq skip_right      // don't move if at right edge
         inc A1X
+skip_right:
         rts
 
 move_up:
+        lda A1Y
+        beq skip_up         // don't move if at top edge (Y=0)
         dec A1Y
+skip_up:
         rts
 
 move_down:
+        lda A1Y
+        cmp #[SCREEN_HEIGHT-1]
+        beq skip_down       // don't move if at bottom edge
         inc A1Y
+skip_down:
         rts
 
-delay:
-        ldx #$7F
-        ldy $FF
-decr:
-        dey
-        bne decr
-        dex
-        bne decr
+wait_vsync:                 // wait for vertical blank for smooth 50/60Hz updates
+        lda $d011
+        bpl wait_vsync      // wait until raster line > 255
+vsync_wait2:
+        lda $d011
+        bmi vsync_wait2     // wait until raster line < 256 (new frame)
         rts
 
 find_closest_tile:
-.break
-        clc
+        // Calculate distance to T1
+        sec
         lda A1X
         sbc T1X
         bpl store_x1
-        sta $5000
-        sec
-        lda #$FF
-        sbc $5000
+        eor #$FF            // negate (two's complement)
+        clc
+        adc #1
 store_x1:
         tax                 // X difference in X register
-        clc
+        sec
         lda A1Y
         sbc T1Y
         bpl store_y1
-        sta $5000
-        sec
-        lda #$FF
-        sbc $5000
+        eor #$FF
+        clc
+        adc #1
 store_y1:
-        sta $5000           // Y difference in $5000
+        sta TEMP           // Y difference in TEMP
         txa
         clc
-        adc $5000           // distance to T1 in A
+        adc TEMP           // distance to T1 in A
         pha                 // now on stack
-        clc
+        // Calculate distance to T2
+        sec
         lda A1X
         sbc T2X
         bpl store_x2
-        sta $5000
-        sec
-        lda #$FF
-        sbc $5000
+        eor #$FF
+        clc
+        adc #1
 store_x2:
         tax                 // X difference in X register
-        clc
+        sec
         lda A1Y
         sbc T2Y
         bpl store_y2
-        sta $5000
-        sec
-        lda #$FF
-        sbc $5000
+        eor #$FF
+        clc
+        adc #1
 store_y2:
-        sta $5000           // Y difference in $5000
+        sta TEMP           // Y difference in TEMP
         txa
         clc
-        adc $5000           // distance to T1 in A
-        sta $5000           // now in $5000
+        adc TEMP           // distance to T1 in A
+        sta TEMP           // now in TEMP
         clc
         pla                 // distance 1 now in A
-        cmp $5000           // d1 - d2
+        cmp TEMP           // d1 - d2
         bpl take_t2         // d1 > d2 -> go to T2
         lda #$1
         sta A1TILENO
@@ -352,7 +370,7 @@ init_screen:
         sta $286
 
 clear:
-        lda #$2E            // #$2E is . -> fill screen with .
+        lda #CHAR_DOT       // fill screen with .
         sta $0400,x
         sta $0500,x
         sta $0600,x
@@ -416,10 +434,10 @@ PLOT:
         rts
 
 rnd:                        // pass max in X register
-        stx $5000
+        stx TEMP
         lda $d012
         eor $dc04
         sbc $dc05
-        cmp $5000
+        cmp TEMP
         bcs rnd
         rts
