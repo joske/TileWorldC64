@@ -10,11 +10,11 @@ WORKDIR /app
 
 RUN unzip /tmp/KickAssembler.zip KickAss.jar KickAss.cfg
 
-COPY grid.asm .
+COPY *.asm .
 
-RUN java -jar KickAss.jar grid.asm -debug
+RUN java -jar KickAss.jar main.asm -debug
 
-CMD [ "x64", "-default", "-console", "grid.prg"]
+CMD [ "x64", "-default", "-console", "main.prg"]
 
 FROM scratch AS export
-COPY --from=builder /app/grid.prg /
+COPY --from=builder /app/main.prg /

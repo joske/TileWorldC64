@@ -1,4 +1,4 @@
-build: grid.asm Makefile
+build: main.asm constants.asm utils.asm screen.asm objects.asm agent.asm Makefile
 	DOCKER_BUILDKIT=1 docker build -o . -t tileworldc64 .
 
 run: build
